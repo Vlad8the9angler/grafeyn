@@ -13,12 +13,13 @@ mod utility;
 pub use greedy_finish_qubit_gate_scheduler::GreedyFinishQubitGateScheduler;
 pub use greedy_nonbranching_gate_scheduler::GreedyNonbranchingGateScheduler;
 pub use naive_gate_scheduler::NaiveGateScheduler;
-
+pub use dag_a_star_informed::DAGScheduler;
 #[derive(Debug, Copy, Clone)]
 pub enum GateSchedulingPolicy {
     Naive,
     GreedyNonbranching,
     GreedyFinishQubit,
+    DAG,
 }
 
 impl FromStr for GateSchedulingPolicy {
@@ -29,6 +30,7 @@ impl FromStr for GateSchedulingPolicy {
             "naive" => Ok(GateSchedulingPolicy::Naive),
             "greedy-nonbranching" | "gnb" => Ok(GateSchedulingPolicy::GreedyNonbranching),
             "greedy-finish-qubit" | "gfq" => Ok(GateSchedulingPolicy::GreedyFinishQubit),
+            "dag-a-star"|"das" => Ok(GateSchedulingPolicy::DAG),
             _ => Err(format!(
                 "unknown gate scheduling policy: {}; valid values are: naive, gnb, fgq",
                 s
@@ -43,6 +45,7 @@ impl Display for GateSchedulingPolicy {
             GateSchedulingPolicy::Naive => write!(f, "naive"),
             GateSchedulingPolicy::GreedyNonbranching => write!(f, "greedy-nonbranching"),
             GateSchedulingPolicy::GreedyFinishQubit => write!(f, "greedy-finish-qubit"),
+            GateSchedulingPolicy::DAG=>write!(f,"dag-a-star"),
         }
     }
 }
@@ -92,6 +95,16 @@ pub fn create_gate_scheduler<'a, B: BasisIdx>(
                 num_gates,
                 num_qubits,
                 gate_touches,
+            ))
+        }
+        GateSchedulingPolicy::DAG =>{
+            log::info!("using dag a* gate scheduler");
+            Box::new(DAGScheduler::new(
+                num_gates,
+                num_qubits,
+                gate_touches,
+                gate_is_branching,
+                informed,
             ))
         }
     }
