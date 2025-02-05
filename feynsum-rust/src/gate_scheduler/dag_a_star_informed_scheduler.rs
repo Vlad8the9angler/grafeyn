@@ -1,6 +1,8 @@
 //IDEA: represent a circuit as a directed acylic graph(DAG)
 //use a*-search with  a heuristic function to find the optimal scheduling
 //WARNING: scheduler may be slower than the greedy version 
+//IMPORTANT NOTE:  I had some issues testing the scheduler and adapting it to the current scheme, 
+// the role of it is mainly a visualisation of the idea of a forward looking scheduler
 use super::{utility, GateScheduler};
 use crate::circuit::{self, Circuit};
 use crate::types::{BasisIdx, GateIndex, QubitIndex};
@@ -74,8 +76,10 @@ impl <'a> DAGScheduler <'a>{
         if self.gate_is_branching[g_index] == true{
             branch = 1;
         }
-        let heuristic:i32 = branch - self.successor(g_index).length();
-
+        let depth = self.predecessors(g_index).len();
+        let oportunities = self.successor(g_index).len();
+        let heuristic:i32 = branch - oportunities as i32 + depth as i32;
+        
         heuristic
     }
     //implements a* scheduler
@@ -138,10 +142,7 @@ impl <'a> DAGScheduler <'a>{
     
     //function determining whether a gate touches a qubit
     fn touches_qubit(&mut self, gate_index:GateIndex,  qubit_index: QubitIndex )-> bool{
-        if self.gate_touches[gate_index].contains(&qubit_index){
-            true
-        }
-        false
+        self.gate_touches[gate_index].contains(&qubit_index)
     }
     fn predecesors_init(&mut self, gate_index:GateIndex) -> Vec<QubitIndex>{
         //find all the elements required by the gate
@@ -157,8 +158,7 @@ impl <'a> DAGScheduler <'a>{
     }
     //gets the currently ready gates, i.e the gates that are ready to be executed
     fn current_gates(&mut self)-> Vec<GateIndex>{
-        let mut gts = Vec::new();
-        gts
+        self.frontier.clone()
     }
     //gets the successor gates of the given gates
     fn successor(&mut self,  gate_index:GateIndex) -> Vec<QubitIndex>{
